@@ -3,3 +3,9 @@
 *.o
 *.out
 a.out
+
+# binarios da versao corrigida (o README ensina a compilar)
+Lista 1 - alt corrigida/e*/e[0-9]
+
+# enunciado da professora fica so local, nao vai pro repo publico
+*.pdf
