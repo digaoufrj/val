@@ -6,7 +6,7 @@ int main()
 {
 	struct stat info;
 	struct stat linfo; 
-	char lkfile[10] = "link";
+	char lkfile[10] = "link.txt";
 	
 	if(stat(lkfile,&info) == -1) 
 	{

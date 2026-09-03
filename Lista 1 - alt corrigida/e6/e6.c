@@ -18,10 +18,9 @@ int main(int argc, char *argv[])
 	int count = 0;
 	char letra;
 
-	lseek(cursor,0,SEEK_SET);
-
 	while(i < tamanho)
 	{
+		lseek(cursor,i,SEEK_SET);
 		read(cursor,&letra,1);
 		if(letra == '\0') count += 1;
 		i++;
