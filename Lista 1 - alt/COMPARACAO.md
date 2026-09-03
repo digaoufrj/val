@@ -1,17 +1,23 @@
 # Conferência: versão do Robson x minha versão
 
-Compilei tudo com `gcc -Wall -Wextra` e rodei os dois lados nos mesmos arquivos
-de teste. Resumo: **os 8 exercícios têm o mesmo sentido e 5 estão corretos.
-1 tem bug de lógica, 2 têm defeitos menores, e 1 está incompleto.**
+Compilei tudo com `gcc -Wall -Wextra`, rodei os dois lados nos mesmos arquivos
+de teste e conferi contra o enunciado da lista.
+
+**Resumo: os 8 exercícios atacam o problema certo. 3 estão corretos (e1, e6, e8),
+1 tem bug de lógica (e3), 1 está incompleto (e5) e 3 têm defeitos menores
+(e2, e4, e7).**
+
+A versão com tudo isso consertado está em
+[`Lista 1 - alt corrigida`](../Lista%201%20-%20alt%20corrigida/README.md).
 
 | Ex | Tema | Resultado |
 |----|------|-----------|
 | 1 | tamanho via `lseek` | ✅ correto |
 | 2 | ler 100 bytes + 50 a partir do byte 200 | ⚠️ funciona, mas imprime lixo no fim |
 | 3 | metadados via `stat` | ❌ **bug: permissões sempre erradas** |
-| 4 | `stat` vs `lstat` em link | ✅ correto |
+| 4 | `stat` vs `lstat` em link | ⚠️ correto, mas falta a explicação que o enunciado pede |
 | 5 | `fstat` vs `stat` | ⚠️ **incompleto: nunca chama `stat()`** |
-| 6 | contar bytes nulos | ✅ correto (e mais eficiente que o meu) |
+| 6 | contar bytes nulos | ✅ correto (mais eficiente, mas ver ressalva) |
 | 7 | escrever "FIM" no byte 20 e truncar | ⚠️ grava 1 byte a mais (`\0`) |
 | 8 | vários arquivos via `lstat` | ✅ lógica correta, saída mais enxuta |
 
@@ -118,7 +124,17 @@ Os dois param no byte 200 e leem o mesmo trecho — confirmei que a saída bate.
 
 ---
 
-## ✅ e6 — correto, e melhor que o meu
+## ⚠️ e4 — falta a explicação pedida
+
+Os números estão certos (`stat` devolve o tamanho do alvo, `lstat` o do link —
+confirmei 28 vs 9 bytes no meu teste). Mas o enunciado do exercício 4 termina
+com **"Explique a diferença"**, e o programa dele só imprime os dois números,
+sem uma linha sequer dizendo por que são diferentes. O meu imprime a explicação
+junto de cada valor.
+
+---
+
+## ✅ e6 — correto, e mais eficiente que o meu
 
 Mesmo resultado do meu `ex6` (testei nos dois com `printf "AB\0CD\0EF\0G"`:
 ambos dizem 3 nulos; no binário de 16 KB dele deu 13485, que confere com uma
@@ -126,17 +142,22 @@ contagem independente via `od`).
 
 A implementação dele é **mais eficiente**: lê sequencialmente 1 byte por vez,
 enquanto o meu faz `lseek(fd, i, SEEK_SET)` antes de cada `read` — um syscall a
-mais por byte, sem necessidade, já que o cursor avança sozinho.
+mais por byte, já que o cursor avança sozinho.
+
+**Ressalva:** o enunciado diz *"Use `lseek()` para percorrê-lo sem `read()`
+tradicional"*. Nessa leitura o meu segue a letra do enunciado (uso o `lseek`
+para andar posição a posição) e o dele não (o `lseek` só aparece duas vezes,
+para medir e para voltar ao início). Os dois usam `read` de 1 byte, então
+nenhum atende o "sem `read()`" ao pé da letra. **Em desempenho o dele é melhor;
+em aderência ao enunciado, o meu.**
 
 ---
 
-## ✅ e1, e4, e8 — corretos
+## ✅ e1, e8 — corretos
 
 - **e1**: mesmo `lseek(fd, 0, SEEK_END)`. Testei nos dois com o mesmo arquivo,
   resultado idêntico. Ele não recebe argumento e não checa erro do `open` (se o
   arquivo não existir, `lseek` retorna -1 e imprime `-1` em vez de mensagem).
-- **e4**: idêntico em resultado ao meu — `stat` devolve o tamanho do alvo,
-  `lstat` o tamanho do link. Confirmado: 28 vs 9 bytes no meu teste.
 - **e8**: usa `lstat` em loop no `argv` e identifica regular/link/diretório
   corretamente, com o `&` certo nas permissões. Diferenças cosméticas: imprime
   só as 3 permissões do dono, não mostra o caractere de tipo (`d`/`l`/`-`), não
