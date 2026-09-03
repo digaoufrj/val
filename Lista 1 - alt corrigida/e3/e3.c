@@ -5,7 +5,7 @@
 
 int main()
 {
-	char name[256]; // CORRIGIDO: era [20]
+	char name[256];
 	struct stat file_info;
 
 	printf("Digite o nome do arquivo:");
@@ -21,16 +21,10 @@ int main()
 
 	printf("Tamanho:%ld\nNumero de links:%ld\nUID:%d\n",(long)file_info.st_size,(long)file_info.st_nlink,file_info.st_uid);
 
-	// CORRIGIDO: aqui estava o bug principal. Era (file_info.st_mode, S_IRUSR),
-	// com virgula em vez de &. O operador virgula descarta o lado esquerdo e usa
-	// so o S_IRUSR, que e a constante 0400 e nunca e zero -> imprimia "rwx" sempre.
-	// O certo e o E bit a bit (&), que testa se aquele bit esta ligado no st_mode.
 	printf("Permissoes: ");
 	printf((file_info.st_mode & S_IRUSR)? "r":"-");
 	printf((file_info.st_mode & S_IWUSR)? "w":"-");
 	printf((file_info.st_mode & S_IXUSR)? "x":"-");
-	// CORRIGIDO: faltavam grupo e outros. O enunciado pede as permissoes de acesso,
-	// que sao as 9 (dono, grupo, outros), como no ls -l
 	printf((file_info.st_mode & S_IRGRP)? "r":"-");
 	printf((file_info.st_mode & S_IWGRP)? "w":"-");
 	printf((file_info.st_mode & S_IXGRP)? "x":"-");

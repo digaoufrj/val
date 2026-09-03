@@ -3,6 +3,9 @@
 Exercícios de manipulação de arquivos em C usando chamadas de sistema do Linux
 (`open`, `read`, `write`, `lseek`, `ftruncate`, `stat`, `fstat`, `lstat`).
 
+Os conceitos de cada exercício e a explicação de cada trecho de código estão no
+[GUIA.md](../Lista%201/GUIA.md).
+
 Cada exercício tem sua própria pasta contendo:
 - o código-fonte (`exN.c`),
 - o(s) arquivo(s) de teste que ele usa.
