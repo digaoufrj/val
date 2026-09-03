@@ -1,0 +1,5 @@
+# binarios compilados pelo gcc (recrie com: gcc exN.c -o exN)
+**/ex*/ex[0-9]
+*.o
+*.out
+a.out
