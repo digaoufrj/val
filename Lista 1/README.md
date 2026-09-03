@@ -1,4 +1,4 @@
-# Lista 1 — Chamadas de Sistema (Prof. Valéria)
+# Lista 1 — Chamadas de Sistema
 
 Exercícios de manipulação de arquivos em C usando chamadas de sistema do Linux
 (`open`, `read`, `write`, `lseek`, `ftruncate`, `stat`, `fstat`, `lstat`).
