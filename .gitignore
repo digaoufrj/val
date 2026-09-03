@@ -10,3 +10,6 @@ Lista 1 - refactor/ex*/ex[0-9]
 
 # enunciado da professora fica so local, nao vai pro repo publico
 *.pdf
+
+# guia de apresentacao, fica so local pra copiar pro celular
+GUIA-APRESENTAR-CODIGO-DO-ROBSON.txt
