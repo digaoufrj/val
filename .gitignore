@@ -4,8 +4,9 @@
 *.out
 a.out
 
-# binarios da versao corrigida (o README ensina a compilar)
+# binarios da versao corrigida e do refactor (os READMEs ensinam a compilar)
 Lista 1 - alt corrigida/e*/e[0-9]
+Lista 1 - refactor/ex*/ex[0-9]
 
 # enunciado da professora fica so local, nao vai pro repo publico
 *.pdf

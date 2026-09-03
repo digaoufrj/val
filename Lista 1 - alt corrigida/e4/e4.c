@@ -15,7 +15,6 @@ int main()
 	}
 
 	printf("Tamanho do link via stat:%ld",(long)info.st_size);
-	// CORRIGIDO: o enunciado pede "Explique a diferenca". So os dois numeros nao explicam nada.
 	printf("  <- stat() segue o link e mostra o tamanho do ARQUIVO ALVO\n");
 
 	if(lstat(lkfile,&linfo) == -1)

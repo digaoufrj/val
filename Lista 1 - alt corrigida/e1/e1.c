@@ -6,12 +6,10 @@ int main()
 {
 
 	int cursor;
-	off_t tam_bytes; // CORRIGIDO: era "signed int". off_t nao estoura em arquivos > 2GB
+	off_t tam_bytes;
 
 	cursor = open("lorem.txt",O_RDONLY); //abre o arquivo lorem.txt apenas para leitura e coloca o cursor do mouse no inicio do arquivo, na posição 0, então cursor = 0
 
-	// CORRIGIDO: sem essa checagem, se o arquivo nao existe o programa segue com
-	// cursor = -1, o lseek falha e o printf mostra "-1" como se fosse o tamanho
 	if(cursor == -1)
 	{
 		perror("Erro ao abrir lorem.txt");
@@ -27,8 +25,8 @@ int main()
 		return 1;
 	}
 
-	printf("Tamanho: %ld bytes\n",(long)tam_bytes); // CORRIGIDO: faltava o \n
+	printf("Tamanho: %ld bytes\n",(long)tam_bytes);
 
-	close(cursor); // CORRIGIDO: faltava fechar o descritor
+	close(cursor);
 	return 0;
 }

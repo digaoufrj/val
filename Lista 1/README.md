@@ -5,8 +5,9 @@ Exercícios de manipulação de arquivos em C usando chamadas de sistema do Linu
 
 Cada exercício tem sua própria pasta contendo:
 - o código-fonte (`exN.c`),
-- o binário já compilado (`exN`),
 - o(s) arquivo(s) de teste que ele usa.
+
+O binário (`exN`) não vai pro repositório — é gerado ao compilar.
 
 **Regra geral:** entre na pasta do exercício antes de compilar/rodar. Os arquivos
 de teste são referenciados por caminho relativo (o ex4 e o ex8 dependem de estar
