@@ -67,13 +67,20 @@ permissões de acesso, que são as 9, e ele imprimia só as 3 do dono. E o
 
 ## e4 — média
 
-O enunciado do exercício 4 termina com **"Explique a diferença"**, e o programa
+**Nomes alinhados com o enunciado.** O enunciado dá os nomes de propósito
+(*"Crie um link simbólico para um arquivo (`ln -s arquivo.txt link.txt`)"*, e
+depois *"Use `stat("link.txt")`"*). O original usava `link` → `lorem.txt`.
+Agora a pasta tem `arquivo.txt` e `link.txt`, exatamente como no enunciado, e o
+`lstat` devolve **11 bytes** — as 11 letras de `arquivo.txt`, o número que a
+própria professora usa de exemplo.
+
+E o enunciado termina com **"Explique a diferença"**, que o programa não fazia:
 só imprimia os dois números. Foram acrescentados os `printf` que explicam:
 
 - `stat()` **segue** o link → devolve o tamanho do arquivo alvo (634 bytes)
 - `lstat()` **não segue** → devolve o tamanho do próprio link (9 bytes)
 - e o porquê: o link é um arquivo que guarda o caminho do alvo como texto, então
-  seu tamanho é o número de letras desse caminho — `lorem.txt` tem 9 letras
+  seu tamanho é o número de letras desse caminho — `arquivo.txt` tem 11 letras
 
 ## e5 — **grave**
 
@@ -94,7 +101,34 @@ pedia.
 Além disso o nome do arquivo saiu de fixo (`"lorem.txt"`) para argumento
 opcional, o que permite testar com diretório: `./e5 .`
 
-## e6 — leve
+## e6 — média
+
+**O ponto principal: quem percorria o arquivo era o `read`, não o `lseek`.**
+O enunciado pede *"Use `lseek()` para percorrê-lo sem `read()` tradicional"*.
+No original o `lseek` aparecia só duas vezes — uma pra medir o tamanho e uma pra
+voltar ao início — e a varredura era um `read` sequencial. Se a professora
+perguntasse "onde você percorreu com `lseek`?", não havia resposta.
+
+```c
+lseek(cursor,0,SEEK_SET);      // era: rebobina uma vez
+while(i < tamanho)
+{
+    read(cursor,&letra,1);     // e o read anda sozinho
+```
+
+```c
+while(i < tamanho)
+{
+    lseek(cursor,i,SEEK_SET);  // ficou: salta pra posicao i a cada volta
+    read(cursor,&letra,1);
+```
+
+O resultado é o mesmo (13485 bytes nulos no `binario.bin`, conferido por fora
+com `od`), mas agora é o `lseek` que percorre, que é o que o exercício cobra.
+Fica mais lento — um syscall a mais por byte — e essa é a resposta honesta se
+ela cutucar: dá pra fazer sequencial, mas o enunciado pediu `lseek`.
+
+Além disso:
 
 | Era | Ficou | Por quê |
 |---|---|---|
@@ -103,10 +137,8 @@ opcional, o que permite testar com diretório: `./e5 .`
 | sem checagem do `open` | `if(cursor == -1)` | falha silenciosa |
 | sem `close` | `close(cursor)` | descritor vazando |
 
-A lógica de contagem já estava certa e é mais eficiente que a da minha versão
-(ele lê sequencialmente; eu faço um `lseek` antes de cada `read`). A ressalva
-está na [conferência](../Lista%201%20-%20alt/COMPARACAO.md): o enunciado pede
-para percorrer *com `lseek`*.
+A lógica de contagem em si já estava certa desde o começo — o que mudou foi
+**como** o arquivo é percorrido.
 
 ## e7 — média
 

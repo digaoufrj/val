@@ -17,9 +17,9 @@ Compila sem nenhum aviso com `gcc -Wall -Wextra`.
 | e1 | leve | `off_t` no lugar de `int`, checagem do `open`, `close`, `\n` no print |
 | e2 | média | buffers zerados e terminados (imprimia lixo), nome com 256 bytes e sem `\n`, `SEEK_SET 200` |
 | e3 | **grave** | `,` → `&` nas permissões (imprimia `rwx` sempre), + grupo e outros |
-| e4 | média | adicionada a explicação da diferença, que o enunciado pede |
+| e4 | média | nomes `arquivo.txt`/`link.txt` do enunciado + a explicação da diferença que ele pede |
 | e5 | **grave** | adicionada a chamada `stat()` e a comparação com `fstat()`, que faltavam |
-| e6 | leve | aceita argumento, `off_t`, checagem do `open`, `close` |
+| e6 | **média** | passa a percorrer o arquivo com `lseek`, como o enunciado exige (antes era `read` sequencial) |
 | e7 | média | `strlen` no lugar de `sizeof` (gravava um `\0` extra no arquivo) |
 | e8 | média | permissões completas (9) + caractere de tipo, mostra o nome, segue após erro |
 
@@ -35,7 +35,7 @@ gcc eN.c -o eN
 | e1 | `./e1` | `Tamanho: 634 bytes` |
 | e2 | `./e2` e digite `lorem.txt` | 100 bytes do início + 50 bytes a partir do byte 200 |
 | e3 | `./e3` e digite `lorem.txt` | tamanho, links, UID, `rw-rw-r--`, data |
-| e4 | `./e4` | `stat` = 634 bytes (alvo), `lstat` = 9 bytes (link) + explicação |
+| e4 | `./e4` | `stat` = 634 bytes (alvo), `lstat` = 11 bytes (link) + explicação |
 | e5 | `./e5` ou `./e5 .` | mesmo tamanho/tipo pelos dois caminhos + `iguais? SIM` |
 | e6 | `./e6` ou `./e6 <arquivo>` | `Numero de caracteres nulos:13485` |
 | e7 | `./e7` | `01234567890123456789FIM`, arquivo fica com **24 bytes** |
