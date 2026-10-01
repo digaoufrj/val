@@ -314,33 +314,96 @@ sistema. Isso é estar em background.
     (void)signal(SIGTERM, trata_sinal);
 ```
 
-Um `for` é um laço com contador. `for (i = 1; i < NSIG; i++)` significa:
-*"começa com `i` valendo 1; enquanto `i` for menor que `NSIG`, faz o que está
-embaixo; a cada volta soma 1 no `i`"*. Começa em 1 porque não existe sinal
-número zero, e `NSIG` é um nome pronto que vale **quantos sinais existem** (uns
-65) — usar o nome funciona em qualquer sistema.
+**Primeiro o modelo mental.** O sistema mantém, **para cada programa rodando**,
+um caderninho de recados. Uma linha por sinal, dizendo o que fazer quando aquele
+sinal chegar. Cada sinal tem um número, e os nomes tipo `SIGTERM` são só apelidos
+pra esses números. O caderninho do seu programa começa assim, de fábrica:
 
-Cada sinal tem um número, e nomes como `SIGTERM` são apelidos pra esses números.
-Então o laço passa por **todos os sinais que existem**, um a um.
+| nº | apelido | o que o sistema faz, de fábrica |
+|---|---|---|
+| 1 | `SIGHUP` | **mata o programa** |
+| 2 | `SIGINT` | **mata o programa** |
+| 9 | `SIGKILL` | **mata o programa** |
+| 10 | `SIGUSR1` | **mata o programa** |
+| 15 | `SIGTERM` | **mata o programa** |
+| 17 | `SIGCHLD` | não faz nada |
+| ... | ... | quase tudo: **mata o programa** |
 
-- `signal(i, SIG_IGN)` — a função `signal` diz ao sistema o que fazer quando um
-  sinal chegar. Recebe **qual** sinal e **o que fazer**. Aqui, `SIG_IGN`, que
-  significa *ignorar*
-- `if (i != SIGCHLD)` — `!=` é "diferente de". Deixa de fora o aviso "um filho
-  seu morreu". O daemon cria um filho por rodada (o `ps`) e é mais correto não
-  bagunçar esse aviso. (Testando, funciona dos dois jeitos)
-- `SIGKILL` e `SIGSTOP` o sistema **não deixa** ignorar. Não dá erro, ele só não
-  obedece nesses dois — e o enunciado já avisa que contra o SIGKILL não há jeito
-- `(void)` só diz "sei que essa função devolve um valor e estou ignorando de
-  propósito". Não muda o funcionamento
+É por isso que a primeira versão do código morria quando a gente mandava
+`kill -USR1`: ninguém tinha reescrito a linha 10 do caderninho, então valia o de
+fábrica, que é matar.
 
-A última linha passa, no lugar de "ignorar", o **nome da nossa função**: você
-entrega ao sistema o endereço dela pra ser chamada quando o SIGTERM chegar.
+**O que a função `signal` faz:** reescreve **uma linha** do caderninho. Ela
+recebe dois ingredientes — qual linha (o número do sinal) e o que passar a
+fazer. O "o que fazer" pode ser:
 
-**A ordem é tudo.** O laço mandou ignorar o SIGTERM também; esta linha vem
-**depois** e escreve por cima, trocando "ignorar" por "chama a minha função".
-Resultado: tudo ignorado, e o SIGTERM como única saída educada — exatamente o
-que o enunciado pede.
+- `SIG_IGN` → *"não faz nada, finge que não chegou"*
+- o nome de uma função sua → *"chama essa função"*
+
+**Agora o laço.** `for (i = 1; i < NSIG; i++)` significa: *"começa com `i`
+valendo 1; enquanto `i` for menor que `NSIG`, faz o que está embaixo; a cada
+volta soma 1 no `i`"*. `NSIG` é um nome pronto que vale quantos sinais existem
+(nesta máquina, 65). Começa em 1 porque não existe sinal de número zero.
+
+Então, na prática, o laço faz isto:
+
+```
+volta 1  → i = 1  → reescreve a linha  1 (SIGHUP):  ignorar
+volta 2  → i = 2  → reescreve a linha  2 (SIGINT):  ignorar
+volta 3  → i = 3  → reescreve a linha  3 (SIGQUIT): ignorar
+...
+volta 17 → i = 17 → PULA, por causa do if
+...
+volta 64 → i = 64 → reescreve a última linha: ignorar
+```
+
+Em vez de escrever 60 linhas de `signal` na mão, uma a uma, o laço cobre todas.
+E cobrir **todas** é literalmente o que o enunciado pede.
+
+Os detalhes que sobram:
+
+- `if (i != SIGCHLD)` — `!=` quer dizer "diferente de". Quando o contador chega
+  em 17, essa volta é pulada e a linha do `SIGCHLD` fica como estava. O SIGCHLD
+  é o aviso "um filho seu morreu", e o daemon cria um filho a cada rodada (o
+  `ps`), então é mais correto não mexer nesse aviso. (Testando, funciona dos
+  dois jeitos — mas é mais correto assim)
+- **`SIGKILL` (9) e `SIGSTOP` (19) o sistema não deixa reescrever.** O laço vai
+  tentar, e o sistema simplesmente ignora o pedido nesses dois. Não dá erro, não
+  trava nada — a linha deles continua dizendo "mata". E está certo: o enunciado
+  já avisa que contra o SIGKILL ninguém resiste
+- `(void)` na frente é só um aviso pra quem lê o código: *"eu sei que a função
+  `signal` devolve um valor e estou jogando fora de propósito"*. Não muda nada
+  no funcionamento
+
+**A última linha, e por que a ordem importa.** O laço acabou de mandar ignorar
+**tudo** — inclusive o SIGTERM, que é a linha 15. Aí vem:
+
+```c
+    (void)signal(SIGTERM, trata_sinal);
+```
+
+Ela reescreve a linha 15 **de novo**, agora trocando "ignorar" pelo nome da
+nossa função. Repare que não tem parênteses depois de `trata_sinal`: você não
+está *chamando* a função, está entregando o **nome** dela pro sistema guardar e
+chamar depois, quando o sinal chegar.
+
+Como essa linha vem **depois** do laço, ela escreve por cima. Se estivesse antes,
+o laço apagaria o que ela fez e o daemon ficaria impossível de encerrar.
+
+O caderninho termina assim:
+
+| nº | apelido | o que o sistema faz agora |
+|---|---|---|
+| 1 | `SIGHUP` | ignora |
+| 2 | `SIGINT` | ignora |
+| 9 | `SIGKILL` | mata — o sistema recusou a mudança |
+| 10 | `SIGUSR1` | ignora |
+| 15 | `SIGTERM` | **chama `trata_sinal`** |
+| 17 | `SIGCHLD` | continua de fábrica (foi pulado) |
+| ... | ... | ignora |
+
+Que é exatamente o pedido do enunciado: invulnerável a tudo, menos ao SIGKILL,
+e encerrando pelo SIGTERM com mensagem no log.
 
 ### 6.8 O cabeçalho do log
 
@@ -349,13 +412,46 @@ que o enunciado pede.
     fflush(arquivo_log);
 ```
 
-Escreve o título das colunas uma vez só, no formato que o PDF mostra.
+São duas coisas diferentes. Uma de cada vez.
 
-O `fflush` merece explicação. Quando você manda escrever num arquivo, o texto
-**não vai direto pro disco**: fica numa salinha de espera na memória (o
-*buffer*) e só é gravado quando ela enche. Isso é bom pra velocidade, mas aqui
-atrapalharia — você daria `cat zumbie.txt` e veria vazio, mesmo o programa tendo
-escrito. `fflush` é o "grava agora, não espera encher".
+**A primeira linha** escreve o título das colunas, no formato que o PDF mostra.
+Ela está **fora** do `while` que vem logo abaixo — e isso é de propósito. Tudo
+que está dentro do `while` se repete pra sempre; esta linha está fora, então
+roda **uma vez só**, quando o daemon sobe. Se estivesse dentro, o título
+apareceria no log a cada rodada. O `\n` no fim é a quebra de linha; sem ele, a
+próxima coisa escrita grudaria no título.
+
+**A segunda linha precisa de uma explicação maior**, porque é bem contra a
+intuição.
+
+Quando você manda escrever num arquivo, **o texto não vai pro disco na hora**.
+Ele cai num **balde na memória**. O programa vai jogando texto no balde, e só
+quando o balde **enche** é que o sistema despeja tudo de uma vez no arquivo de
+verdade. Isso existe por velocidade: escrever no disco é lento, então vale a
+pena juntar um monte e gravar tudo junto.
+
+O problema é o tamanho do balde. Medindo aqui nesta máquina:
+
+```
+o balde comporta 4096 caracteres
+uma linha do log ("29485 29484 gerazumbi") tem 22 caracteres
+4096 ÷ 22 ≈ 186 linhas
+```
+
+Ou seja: **sem o `fflush`, você precisaria esperar o programa escrever umas 186
+linhas antes de o arquivo deixar de estar vazio.** Com 3 zumbis e o daemon
+acordando de 2 em 2 segundos, cada rodada escreve pouco mais de 100 caracteres
+— daria mais de um minuto olhando pra um `zumbie.txt` vazio, achando que o
+programa está quebrado, quando na verdade ele está funcionando e o texto está
+preso no balde.
+
+Normalmente quem resolve isso é o `fclose`, que esvazia o balde ao fechar o
+arquivo. Só que **este programa nunca fecha** — ele roda pra sempre. Então sem
+o `fflush` o texto ficaria lá preso.
+
+`fflush(arquivo_log)` quer dizer: **"esvazia o balde agora, não espera encher"**.
+É o que permite dar `cat zumbie.txt` com o daemon ainda rodando e já ver o
+conteúdo — que é exatamente o que você vai fazer na hora de apresentar.
 
 ### 6.9 O laço eterno
 
