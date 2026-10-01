@@ -120,6 +120,9 @@ Por isso as fichinhas ficam lá, e eu tenho zumbis."*
 
 Nada é pulado aqui. Vai na ordem do arquivo.
 
+> Se da linha 36 em diante ficar pesado, a **seção 9** explica a mesma parte
+> final de forma bem mais curta e direta. As duas dizem a mesma coisa.
+
 ### 6.1 As quatro primeiras linhas
 
 ```c
@@ -577,3 +580,278 @@ automaticamente quando ele morre.
 **"Por que `--no-headers`?"**
 Sem isso a primeira linha do `ps` é o título das colunas e iria parar no log
 como se fosse um processo.
+
+---
+
+## 9. Versão direta — da linha 36 até o fim
+
+A seção 6 explica tudo com calma. Esta aqui explica **a mesma coisa** de forma
+mais curta e direta, só a parte final do código, que é a que mais cai em
+pergunta. Se a seção 6 pesou, lê esta.
+
+Da linha 36 pro fim, o programa faz **três coisas**:
+
+1. se protege dos sinais (linhas 36 a 39)
+2. escreve o título no arquivo (linhas 41 e 42)
+3. entra num laço que nunca termina (linhas 44 a 58)
+
+### 9.1 Linhas 36 a 39 — se proteger
+
+**Sinal** é um tipo de recado que mandam pro teu programa. Cada recado tem um
+número: o 2 é o Ctrl+C, o 9 é o `kill -9`, o 15 é o `kill` normal. De fábrica,
+quase todo recado **mata o programa**. O daemon não pode morrer.
+
+```c
+36    for (i = 1; i < NSIG; i++)
+37        if (i != SIGCHLD)
+38            (void)signal(i, SIG_IGN);
+39    (void)signal(SIGTERM, trata_sinal);
+```
+
+O `i` é um **contador**: vale 1, depois 2, depois 3, até 64 (o último recado que
+existe). A cada número, a linha 38 dá a ordem: *"recado número `i`: ignorar"*.
+
+A linha 39 trata o recado 15 (o `SIGTERM`): em vez de ignorar, **chama a função
+`trata_sinal`**. Ela vem **depois** de propósito — a linha 38 já tinha mandado
+ignorar o 15, e quem fala por último manda. Se estivesse antes, o laço apagaria.
+
+Resultado: tudo ignorado, menos o 15. É o que o enunciado pede.
+
+### 9.2 Por que ele deixa o 17 de fora?
+
+Cuidado com as palavras, que é onde todo mundo se perde:
+
+| | O que significa |
+|---|---|
+| a linha 38 | dá uma **ordem**: "quando chegar, não faça nada" |
+| a linha 37 | faz o programa **não dar ordem nenhuma** sobre o 17 |
+
+Então o 17 não é "ignorado" — ele fica **como veio de fábrica**, sem o programa
+mexer.
+
+E por que justo ele? Porque o recado 17 é o único em que a palavra "ignorar" tem
+um **segundo significado escondido**. Nos outros, ignorar é só "não faça nada".
+No 17, ignorar quer dizer pro sistema: *"nem me avise quando meus filhos
+morrerem, pode limpar sozinho"*.
+
+Isso atrapalharia, porque a cada ronda o daemon cria um filho (o `ps`, na linha
+47) e depois vai recolher ele (o `pclose`, na linha 56). Se o sistema já tivesse
+limpado por conta própria, o `pclose` chegaria e não acharia nada.
+
+> **Se perguntarem:** *"deixo o SIGCHLD de fora porque pra ele o 'ignorar'
+> significa também 'limpe meus filhos sozinho', e isso atrapalharia o `pclose`
+> que eu uso a cada rodada."*
+>
+> (Testando, funciona dos dois jeitos — mas é mais correto assim.)
+
+### 9.3 Linhas 41 e 42 — escrever o título
+
+```c
+41    fprintf(arquivo_log, "PID PPID Nome do Programa\n");
+42    fflush(arquivo_log);
+```
+
+A 41 escreve o título das colunas, uma vez só. A 42 força a gravação: o C não
+grava na hora, ele junta o texto na memória e só grava quando acumula bastante.
+`fflush` quer dizer **"grava agora"**. Sem isso você abriria o `zumbie.txt` e
+veria vazio.
+
+### 9.4 Por que existe um laço?
+
+Porque o enunciado pede um programa que fica **vigiando**: *"de n em n segundos
+acorda e escreve"*. Sem laço, o programa olharia os zumbis uma vez e morreria.
+
+Pensa num **vigia noturno**:
+
+1. dorme um pouco
+2. acorda e dá uma volta pra ver quem são os zumbis
+3. anota no caderno
+4. volta pro passo 1
+
+A noite inteira, até mandarem ele ir embora. O laço é essa rotina.
+
+### 9.5 São dois laços, e eles fazem coisas diferentes
+
+O esqueleto abaixo está **resumido de propósito** (algumas linhas trocadas por
+texto em português) só pra você enxergar o formato — o código de verdade está
+na 9.6:
+
+```
+44    while (1)                          ← laço de FORA
+46        sleep(n);
+47        comando = popen(...)
+50        escreve =====
+51        while (fgets(...) != NULL)     ← laço de DENTRO
+53            copia uma linha pro arquivo
+55        grava
+56        fecha
+```
+
+- **o de fora (linha 44)** é a rotina do vigia. Uma volta = uma ronda. Nunca
+  termina
+- **o de dentro (linha 51)** acontece **durante uma única ronda**. A resposta do
+  comando pode ter várias linhas, e o C só pega uma por vez — então ele pega
+  uma, copia, pega outra, copia, até a resposta acabar
+
+Com 3 zumbis no sistema:
+
+```
+RONDA 1 (volta 1 do laço de fora)
+   dorme 2 segundos
+   pergunta pro ps quem sao os zumbis  → a resposta tem 3 linhas
+   escreve =====
+   laço de dentro roda 3 vezes:  copia linha 1
+                                 copia linha 2
+                                 copia linha 3
+   acabou a resposta → o laço de dentro para
+   grava e fecha
+
+RONDA 2 (volta 2 do laço de fora)
+   dorme 2 segundos
+   ... tudo de novo, pra sempre
+```
+
+O laço de dentro para quando a resposta acaba. O laço de fora **não para com
+nada** — só com o `kill -TERM`.
+
+### 9.6 Dentro da ronda, linha por linha
+
+**Linha 46 — dormir**
+
+```c
+46        sleep(n);
+```
+
+`n` vale 2 (foi o que você digitou). Para aqui 2 segundos, sem gastar
+processador. É só esta linha que faz o "de n em n segundos".
+
+**Linha 47 — perguntar quem são os zumbis**
+
+```c
+47        FILE *comando = popen("ps -eo pid,ppid,comm,stat --no-headers | awk '$4 ~ /^Z/ {print $1, $2, $3}'", "r");
+```
+
+A linha mais importante do programa. Três perguntas:
+
+*Por que rodar um comando?* Porque o C não tem função pronta tipo "me dá a lista
+de zumbis". Não existe. Mas o terminal tem o `ps`, que lista processos. Então o
+programa faz o que você faria na mão: roda o `ps` e lê a resposta.
+
+*O que o `popen` faz?* Roda o comando **como processo filho** e devolve a
+resposta **como se fosse um arquivo**. Você lê igual leria um texto. O `"r"` é
+de *read*. Isto cumpre o pedido do enunciado: o `ps` como filho, a saída por um
+pipe.
+
+*E o comando?* São dois programas ligados. Primeiro o `ps` lista **todos** os
+processos — numa máquina comum isso dá umas **371 linhas**:
+
+```
+      1       0 systemd         Ss
+      2       0 kthreadd        S
+  54788   54787 gerazumbi       Z     ← zumbi
+  54789   54787 gerazumbi       Z     ← zumbi
+```
+
+As colunas são PID, PID do pai, nome e **estado**. O estado é a letra do fim:
+`S` dormindo, `R` rodando, **`Z` zumbi**.
+
+O `|` é o **pipe**: joga essas 371 linhas dentro do `awk`. O `awk` lê linha por
+linha e numera as colunas sozinho (`$1`, `$2`, `$3`, `$4`). Então:
+
+- `$4 ~ /^Z/` → *"fica só com as linhas cuja 4ª coluna começa com Z"*
+- `{print $1, $2, $3}` → *"dessas, imprime as três primeiras colunas"*
+
+Das 371 linhas sobram 3:
+
+```
+54788 54787 gerazumbi
+54789 54787 gerazumbi
+54790 54787 gerazumbi
+```
+
+PID, PPID e nome, na ordem do enunciado. **Essa é a resposta pra "como você
+identifica um zumbi?"**: pelo estado `Z` na saída do `ps`.
+
+**Linha 48 — conferir se deu certo**
+
+```c
+48        if (comando != NULL)
+```
+
+Se o `popen` não conseguiu rodar, devolve `NULL` ("nada") e não há resposta pra
+ler. Esta linha é um porteiro: só entra se deu certo.
+
+**Linha 50 — o separador**
+
+```c
+50            fprintf(arquivo_log, "==========================================\n");
+```
+
+A fileira de `=`, uma por ronda. Separa uma leitura da outra, como o PDF mostra.
+
+**Linhas 51 a 54 — copiar a resposta pro arquivo**
+
+```c
+51            while (fgets(linha, sizeof(linha), comando) != NULL)
+52            {
+53                fprintf(arquivo_log, "%s", linha);
+54            }
+```
+
+O `fgets` tem três ingredientes, nesta ordem:
+
+| Ingrediente | O que é |
+|---|---|
+| `linha` | a caixinha onde guardar (cabe 256 letras) |
+| `sizeof(linha)` | o tamanho da caixinha, 256 — uma **trava** pro texto nunca passar do tamanho e estourar a memória |
+| `comando` | de onde ler: a resposta do `ps` |
+
+Em câmera lenta, o conteúdo da caixinha:
+
+```
+1ª volta:  fgets pega a 1ª linha → caixinha: "54788 54787 gerazumbi"
+           a linha 53 copia pro arquivo
+2ª volta:  fgets pega a 2ª linha → caixinha: "54789 54787 gerazumbi"
+           a linha 53 copia pro arquivo
+3ª volta:  fgets pega a 3ª linha → caixinha: "54790 54787 gerazumbi"
+           a linha 53 copia pro arquivo
+4ª volta:  acabou a resposta     → fgets devolve NULL
+           o while vê o NULL e PARA
+```
+
+A caixinha é **reaproveitada**: a cada volta o novo conteúdo escreve por cima do
+antigo, ela não acumula.
+
+Dois detalhes da linha 53 que podem ser perguntados:
+
+- **não tem `\n`** porque o `fgets` já traz a quebra de linha grudada no fim. Se
+  você pusesse outro, sairia uma linha em branco entre cada zumbi
+- o **`"%s"`** está ali por segurança: escrever `fprintf(arquivo_log, linha)`
+  direto faria o C tratar o conteúdo como instrução de formatação, e um `%` no
+  meio bagunçaria tudo
+
+**Linha 55 — gravar agora**
+
+```c
+55            fflush(arquivo_log);
+```
+
+Força o texto pro disco em vez de esperar acumular. É o que permite dar
+`cat zumbie.txt` com o daemon rodando e já ver o conteúdo.
+
+**Linha 56 — fechar o comando**
+
+```c
+56            pclose(comando);
+```
+
+Fecha o cano e **recolhe o processo filho** criado na linha 47.
+
+> **Se perguntarem** *"se o teu programa cria um filho a cada ronda, por que
+> esses filhos não viram zumbis também?"* — a resposta é esta linha. O `pclose`
+> é o "recolher a fichinha" do filho. Sem ele, o daemon produziria um zumbi novo
+> a cada 2 segundos: o programa que monitora zumbis seria a maior fábrica de
+> zumbis da máquina.
+
+E aí a chave fecha, o `while (1)` da linha 44 volta pro começo e tudo recomeça na
+linha 46. Pra sempre, até chegar o `kill -TERM`.
