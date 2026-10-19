@@ -1,5 +1,5 @@
 #!/bin/sh
 
-echo "$*" | tr -d " "
+printf "%s\n" "$*" | tr -d " "
 
 exit 0

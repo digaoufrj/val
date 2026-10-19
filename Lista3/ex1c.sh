@@ -4,7 +4,7 @@ echo "Deseja ver as informacoes do sistema? (s/n)"
 read resposta
 
 case "$resposta" in
-    s | S | sim | Sim | SIM)
+    [sS] | [sS][iI][mM])
         echo
         ;;
     *)

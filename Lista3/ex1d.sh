@@ -9,7 +9,7 @@ read resposta
 
 # Se a resposta nao for "sim", o script termina aqui
 case "$resposta" in
-    s | S | sim | Sim | SIM)
+    [sS] | [sS][iI][mM])
         echo
         ;;
     *)

@@ -3,6 +3,12 @@
 echo "Digite o nome do arquivo:"
 read arquivo
 
+if [ -z "$arquivo" ]
+then
+    echo "Nenhum nome foi digitado"
+    exit 1
+fi
+
 if [ -e "$arquivo" ]
 then
     if [ -d "$arquivo" ]
