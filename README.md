@@ -38,6 +38,14 @@ Exercícios de programação em C para a faculdade (UFRJ).
   zumbi, sinais, pipe), o que cada trecho do código faz e um roteiro de
   demonstração.
 
+## Lista 3 — shell script
+
+- **[Lista3](Lista3/)** — exercícios de shell script (`#!/bin/sh`). Um arquivo
+  por exercício, com o número na frente (`ex1a.sh` … `ex9_parametros.sh`).
+  Usa `read`, parâmetros (`$1`, `$#`, `$*`), `if`/`case`, `while`/`for`,
+  `$(( ))` e filtros com pipe (`grep`, `tr`, `cut`, `sort`, `uniq`).
+  Para rodar: `chmod +x exN.sh` e depois `./exN.sh`.
+
 ## Compilando
 
 Os binários não vão pro repositório (exceto os originais do Robson, que vieram
