@@ -1,0 +1,138 @@
+RELATÓRIO — TRABALHO 3
+Comando Linux em Shell Script: uname
+
+Disciplina: Sistemas Operacionais 2 / Tópicos Especiais em Ciência da Computação 1 — UFRJ
+Integrantes:
+
+
+1. O QUE É O UNAME
+
+O uname (de "Unix name") é um utilitário do Linux que mostra informações de identificação do sistema: o nome do kernel, o nome da máquina na rede, a versão do kernel, a arquitetura do processador e o sistema operacional. É útil, por exemplo, para descobrir qual versão do kernel está rodando ou se a máquina é de 64 bits.
+
+Neste trabalho, reimplementamos o uname em Shell Script, buscando o mesmo comportamento do original: mesmas saídas, mesmas mensagens de erro e mesmos códigos de saída. Como referência, usamos o uname do GNU coreutils 9.4, que vem no Ubuntu 24.04.
+
+Forma de uso:
+
+    uname [OPÇÃO]...
+
+Um uso comum é em scripts de instalação, que precisam saber a arquitetura da máquina para baixar a versão certa de um programa:
+
+    case "$(uname -m)" in
+        x86_64)  echo "Baixando a versão para Intel/AMD de 64 bits" ;;
+        aarch64) echo "Baixando a versão para ARM de 64 bits" ;;
+    esac
+
+
+2. OPÇÕES
+
+• -a, --all: mostra todas as informações abaixo, em uma linha.
+• -s, --kernel-name: nome do kernel. Exemplo: Linux
+• -n, --nodename: nome da máquina na rede. Exemplo: rodrigo-MS-7D43
+• -r, --kernel-release: versão do kernel. Exemplo: 7.0.0-38-generic
+• -v, --kernel-version: dados da compilação do kernel. Exemplo: #38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2
+• -m, --machine: arquitetura do hardware. Exemplo: x86_64
+• -p, --processor: tipo do processador. Exemplo: x86_64
+• -i, --hardware-platform: plataforma de hardware. Exemplo: x86_64
+• -o, --operating-system: sistema operacional. Exemplo: GNU/Linux
+• --help: mostra a ajuda do comando.
+• --version: mostra a versão do programa.
+
+Exemplo com todas as informações:
+
+    $ uname -a
+    Linux rodrigo-MS-7D43 7.0.0-38-generic #38~24.04.4-Ubuntu SMP PREEMPT_DYNAMIC Mon Sep 14 16:37:11 UTC 2 x86_64 x86_64 x86_64 GNU/Linux
+
+Observações:
+• O -r e o -v confundem pelo nome. O -r é o número da versão do kernel. O -v descreve como esse kernel foi compilado: o número da compilação (#38), recursos como SMP (suporte a vários processadores) e PREEMPT_DYNAMIC (o modo de preempção do escalonador pode ser escolhido ao iniciar o sistema), e a data.
+• O -v termina em "UTC 2" porque o kernel guarda cada campo com no máximo 64 caracteres, e o ano foi cortado.
+• O -p e o -i não são portáveis. No Ubuntu eles mostram a arquitetura da máquina (por isso x86_64 aparece três vezes no -a); em outras distribuições, mostram "unknown".
+
+
+3. COMO O UNAME SE COMPORTA
+
+• Sem nenhuma opção, funciona como -s.
+• A saída sai em uma linha só, sempre na ordem s, n, r, v, m, p, i, o, não importa a ordem em que as opções foram digitadas. Exemplo: "uname -m -s" mostra "Linux x86_64".
+• Opção repetida aparece uma vez só, e as opções podem ser juntadas: "uname -sr" é o mesmo que "uname -s -r".
+• Em caso de erro, nada é impresso na saída normal: a mensagem vai para a saída de erro e o código de saída é 1. Quando dá certo, o código é 0.
+
+Exemplos de erro:
+
+    $ uname -x
+    uname: invalid option -- 'x'
+    Try 'uname --help' for more information.
+
+    $ uname foo
+    uname: extra operand ‘foo’
+    Try 'uname --help' for more information.
+
+
+4. DE ONDE VÊM AS INFORMAÇÕES
+
+O uname original usa a chamada de sistema uname(), que pede ao kernel uma estrutura (struct utsname) já preenchida com esses dados. O kernel também mostra as mesmas informações em arquivos dentro de /proc/sys/kernel/. O /proc é um sistema de arquivos virtual: esses arquivos não existem no disco, e o kernel gera o conteúdo na hora em que alguém os lê.
+
+O nosso script lê o nome do kernel, a versão e os dados de compilação desses arquivos (ostype, osrelease e version). O nome da máquina vem do comando hostname, e a arquitetura vem do comando lscpu.
+
+
+5. A NOSSA IMPLEMENTAÇÃO
+
+O script está no arquivo new_uname_corrigido.sh. Para executar:
+
+    chmod +x new_uname_corrigido.sh
+    ./new_uname_corrigido.sh -a
+
+Ele funciona em cinco passos:
+
+1. Cria uma variável para cada campo (s, n, r, v, m, p, i, o), todas valendo 0. Valer 1 significa que o campo deve ser impresso.
+2. Se o primeiro argumento for --help ou --version, imprime o mesmo texto do original e termina.
+3. Lê as opções com o getopts, um comando do próprio shell que já entende opções juntas (-sr). Cada letra marca a sua variável com 1, e o -a marca todas. Uma letra inválida gera a mesma mensagem de erro do original.
+4. Se sobrar algum argumento que não é opção, mostra o erro "extra operand". Se nenhuma opção foi marcada, marca o -s.
+5. Monta a saída em uma linha, na ordem fixa, e imprime.
+
+O trecho principal é o do passo 3, que lê as opções:
+
+    while getopts ":asnrvmpio" opcao; do
+        case "$opcao" in
+            a) s=1; n=1; r=1; v=1; m=1; p=1; i=1; o=1 ;;
+            s) s=1 ;;
+            n) n=1 ;;
+            r) r=1 ;;
+            v) v=1 ;;
+            m) m=1 ;;
+            p) p=1 ;;
+            i) i=1 ;;
+            o) o=1 ;;
+            *)
+                echo "uname: invalid option -- '$OPTARG'" >&2
+                echo "Try 'uname --help' for more information." >&2
+                exit 1
+                ;;
+        esac
+    done
+
+O ":" no começo de ":asnrvmpio" faz o getopts não mostrar a mensagem de erro dele, para que o script mostre a mesma do uname. A letra inválida fica guardada na variável OPTARG, e o >&2 manda a mensagem para a saída de erro.
+
+Como a impressão só acontece no final, a ordem é sempre a mesma, uma opção repetida não aparece duas vezes e um erro encerra o script antes de imprimir qualquer coisa.
+
+
+6. TESTES
+
+Comparamos o nosso script com o uname original em 38 combinações de argumentos, verificando a saída, as mensagens de erro e o código de saída. Todas deram idênticas. Os testes incluíram cada opção sozinha, opções juntas, fora de ordem e repetidas, opções inválidas, argumentos extras, --help e --version.
+
+
+7. LIMITAÇÕES
+
+• As opções longas além de --help e --version (como --all e --kernel-name) não foram implementadas. As formas curtas equivalentes funcionam.
+• O --help e o --version só são reconhecidos como primeiro argumento.
+• As mensagens estão em inglês, como no uname de um sistema configurado em inglês. Com as traduções para português instaladas, o original responderia em português.
+
+
+8. CONCLUSÃO
+
+O script implementa nove opções (-a, -s, -n, -r, -v, -m, -p, -i e -o), além de --help e --version, acima das cinco pedidas no enunciado, e reproduz as saídas e as mensagens de erro do original. O trabalho também mostrou que essas informações vêm do kernel, pela chamada de sistema uname() ou pelos arquivos virtuais do /proc.
+
+
+REFERÊNCIAS
+
+• man 1 uname: manual do comando.
+• man 2 uname: a chamada de sistema uname().
+• man 5 proc: o sistema de arquivos /proc.
