@@ -75,10 +75,10 @@ O nosso script lê o nome do kernel, a versão e os dados de compilação desses
 
 5. A NOSSA IMPLEMENTAÇÃO
 
-O script está no arquivo new_uname_corrigido.sh. Para executar:
+O script está no arquivo new_uname.sh. Para executar:
 
-    chmod +x new_uname_corrigido.sh
-    ./new_uname_corrigido.sh -a
+    chmod +x new_uname.sh
+    ./new_uname.sh -a
 
 Ele funciona em cinco passos:
 
@@ -116,14 +116,17 @@ Como a impressão só acontece no final, a ordem é sempre a mesma, uma opção 
 
 6. TESTES
 
-Comparamos o nosso script com o uname original em 38 combinações de argumentos, verificando a saída, as mensagens de erro e o código de saída. Todas deram idênticas. Os testes incluíram cada opção sozinha, opções juntas, fora de ordem e repetidas, opções inválidas, argumentos extras, --help e --version.
+Comparamos o nosso script com o uname original em 38 combinações de argumentos, verificando a saída, as mensagens de erro e o código de saída. Todas deram idênticas. Os testes incluíram cada opção sozinha, opções juntas, fora de ordem e repetidas, opções inválidas, argumentos extras, --help e --version. Os casos em que o script se comporta diferente do original estão na seção 7.
 
 
 7. LIMITAÇÕES
 
 • As opções longas além de --help e --version (como --all e --kernel-name) não foram implementadas. As formas curtas equivalentes funcionam.
 • O --help e o --version só são reconhecidos como primeiro argumento.
+• O original aceita opções longas abreviadas (--he no lugar de --help) e, para uma opção longa desconhecida como --foo, mostra "unrecognized option '--foo'". O script não aceita abreviações e, nesse caso, mostra "invalid option -- '-'".
+• O getopts para de ler as opções no primeiro argumento sem traço, enquanto o original lê todas antes de verificar o resto. Por isso, em "uname foo -x", o original reclama do -x (invalid option) e o script reclama do foo (extra operand). Os dois terminam com código de saída 1.
 • As mensagens estão em inglês, como no uname de um sistema configurado em inglês. Com as traduções para português instaladas, o original responderia em português.
+• Algumas saídas foram feitas para o Ubuntu 24.04 e podem mudar em outro sistema: o texto do --version é fixo (coreutils 9.4); a mensagem "extra operand" usa sempre aspas curvas (‘foo’), mas o original usa aspas retas ('foo') num sistema configurado sem UTF-8; e o -p e o -i sempre mostram a arquitetura, mas em distribuições que mostram "unknown" o original os omite do -a.
 
 
 8. CONCLUSÃO
